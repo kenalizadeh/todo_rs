@@ -1,4 +1,3 @@
-mod tests;
 mod mods;
 
 use std::env;
