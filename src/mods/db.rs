@@ -1,10 +1,11 @@
-use std::path::PathBuf;
+use crate::mods::todo::Todo;
 use sqlx::error::Error;
 use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::{Executor, Row, SqlitePool};
-use crate::mods::todo::Todo;
+use std::ops::Deref;
+use std::path::PathBuf;
 
-const DB_FILENAME: &'static str = "todo.db";
+const DB_FILENAME: &str = "todo.db";
 
 pub async fn migrations() -> Result<(), Error> {
     let pool = conn_pool().await?;
@@ -17,7 +18,8 @@ CREATE TABLE if not exists \"todo\" (
     \"done_at\" DATETIME DEFAULT NULL,
     PRIMARY KEY(\"id\" AUTOINCREMENT)
 );
-    ".to_string();
+    "
+    .to_string();
     pool.execute(query.as_str()).await?;
     pool.close().await;
 
@@ -33,38 +35,45 @@ pub async fn add(s: &str) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn list() -> Result<Vec<Todo>, Error> {
+pub async fn list(no_done: bool) -> Result<Vec<Todo>, Error> {
     let pool = conn_pool().await?;
-    let query = "SELECT * FROM \"todo\"";
-    let res = sqlx::query(query)
-        .fetch_all(&pool)
-        .await?;
+    let mut query = "SELECT * FROM \"todo\"".to_owned();
+    if no_done {
+        query += "WHERE NOT DONE";
+    }
+    let res = sqlx::query(query.deref()).fetch_all(&pool).await?;
 
     pool.close().await;
 
-    let items = res.iter().map(|r| {
-        Todo::new(
-            r.get("id"),
-            r.get("content"),
-            r.get("done"),
-            r.get("created_at"),
-            r.get("done_at")
-        )
-    }).collect();
+    let items = res
+        .iter()
+        .map(|r| {
+            Todo::new(
+                r.get("id"),
+                r.get("content"),
+                r.get("done"),
+                r.get("created_at"),
+                r.get("done_at"),
+            )
+        })
+        .collect();
 
     Ok(items)
 }
 
-pub async fn update(id: u8, content: &str) -> Result<(), Error> {
+pub async fn update(id: usize, content: &str) -> Result<(), Error> {
     let pool = conn_pool().await?;
-    let query = format!("UPDATE \"todo\" SET content = '{}' WHERE id = {}", content, id);
+    let query = format!(
+        "UPDATE \"todo\" SET content = '{}' WHERE id = {}",
+        content, id
+    );
     pool.execute(query.as_str()).await?;
     pool.close().await;
 
     Ok(())
 }
 
-pub async fn delete(id: u8) -> Result<(), Error> {
+pub async fn delete(id: usize) -> Result<(), Error> {
     let pool = conn_pool().await?;
     let query = format!("DELETE FROM \"todo\" WHERE id = {}", id);
     pool.execute(query.as_str()).await?;
@@ -73,10 +82,12 @@ pub async fn delete(id: u8) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn mark_done(id: u8, done: bool) -> Result<(), Error> {
+pub async fn toggle_done(id: usize) -> Result<(), Error> {
     let pool = conn_pool().await?;
-    let done_at = if done { "DATETIME('now')" } else { "NULL" };
-    let query = format!("UPDATE \"todo\" SET done = {}, done_at = {} WHERE id = {}", done, done_at, id);
+    let query = format!(
+        "UPDATE \"todo\" SET done = NOT done, done_at = case when NOT done then DATETIME('now') else NULL END WHERE id = {}",
+        id
+    );
     pool.execute(query.as_str()).await?;
     pool.close().await;
 

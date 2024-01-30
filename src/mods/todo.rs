@@ -10,7 +10,13 @@ pub struct Todo {
 }
 
 impl Todo {
-    pub fn new(id: u8, content: String, done: bool, created_at: String, done_at: String) -> Self {
+    pub fn new(
+        id: u8,
+        content: String,
+        done: bool,
+        created_at: String,
+        done_at: String
+    ) -> Self {
         Todo {
             id,
             content,
