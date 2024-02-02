@@ -28,18 +28,18 @@ CREATE TABLE if not exists \"todo\" (
 
 pub async fn add(s: &str) -> Result<(), Error> {
     let conn = conn_pool().await?;
-    let query = format!("INSERT INTO \"todo\" (content) VALUES ('{}')", s);
+    let query = format!("INSERT INTO \"todo\" (content) VALUES (\"{}\")", s);
     conn.execute(query.as_str()).await?;
     conn.close().await;
 
     Ok(())
 }
 
-pub async fn list(no_done: bool) -> Result<Vec<Todo>, Error> {
+pub async fn list(all: bool) -> Result<Vec<Todo>, Error> {
     let pool = conn_pool().await?;
     let mut query = "SELECT * FROM \"todo\"".to_owned();
-    if no_done {
-        query += "WHERE NOT DONE";
+    if !all {
+        query += "WHERE NOT done";
     }
     let res = sqlx::query(query.deref()).fetch_all(&pool).await?;
 
@@ -82,12 +82,19 @@ pub async fn delete(id: usize) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn toggle_done(id: usize) -> Result<(), Error> {
+pub async fn mark_done(id: usize, toggle: bool) -> Result<(), Error> {
     let pool = conn_pool().await?;
-    let query = format!(
+    let query = if toggle {
+        format!(
         "UPDATE \"todo\" SET done = NOT done, done_at = case when NOT done then DATETIME('now') else NULL END WHERE id = {}",
         id
-    );
+    )
+    } else {
+        format!(
+            "UPDATE \"todo\" SET done = true, done_at = DATETIME('now') WHERE id = {}",
+            id
+        )
+    };
     pool.execute(query.as_str()).await?;
     pool.close().await;
 

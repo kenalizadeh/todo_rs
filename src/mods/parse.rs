@@ -16,10 +16,10 @@ pub async fn parse_command(command: &Commands) -> Result<Vec<Todo>, Error> {
         Commands::Update { summary, id } => {
             db::update(*id, summary).await?;
         }
-        Commands::Done { id } => {
-            db::toggle_done(*id).await?;
+        Commands::Done { id, toggle } => {
+            db::mark_done(*id, *toggle).await?;
         }
-        Commands::List { no_done } => return db::list(*no_done).await,
+        Commands::List { all } => return db::list(*all).await,
     }
 
     db::list(false).await

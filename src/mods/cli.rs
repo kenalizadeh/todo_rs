@@ -37,16 +37,19 @@ pub enum Commands {
         #[arg(short, long)]
         id: usize,
     },
-    /// Toggle task done status
+    /// Mark task done
     Done {
-        /// Task id to mark done/undone
+        /// Task id to mark done
         #[arg(short, long)]
         id: usize,
+        /// Toggles if already done (default `false`)
+        #[arg(short, long, default_value = "false")]
+        toggle: bool,
     },
-    /// List all tasks
+    /// List tasks
     List {
-        /// Filter out done tasks
-        #[arg(short, long)]
-        no_done: bool,
+        /// Show done tasks as well (default `false`)
+        #[arg(short, long, default_value = "false")]
+        all: bool,
     },
 }
