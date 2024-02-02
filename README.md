@@ -8,8 +8,8 @@ Commands:
   add     Add new task
   delete  Delete task with id
   update  Update task with id
-  done    Toggle task done status
-  list    List all tasks
+  done    Mark task done
+  list    List tasks
   help    Print this message or the help of the given subcommand(s)
 
 Options:
